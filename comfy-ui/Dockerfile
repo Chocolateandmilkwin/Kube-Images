@@ -1,4 +1,4 @@
-FROM docker.io/rocm/pytorch:rocm7.2_ubuntu24.04_py3.12_pytorch_release_2.10.0
+FROM docker.io/rocm/pytorch:rocm7.14_ubuntu24.04_py3.12_pytorch_release_2.10.0
 
 ARG COMFYUI_VERSION=v0.28.0
 ARG COMFYUI_MANAGER_VERSION=4.2.1
