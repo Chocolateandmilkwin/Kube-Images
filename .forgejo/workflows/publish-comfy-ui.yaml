@@ -12,9 +12,11 @@ on:
 jobs:
   publish:
     runs-on: docker
+    env:
+      DOCKER_HOST: tcp://host.docker.internal:2375
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Install Docker CLI
         run: |
           apt-get update
