@@ -1,0 +1,33 @@
+name: Publish ComfyUI image
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "comfy-ui/**"
+      - ".forgejo/workflows/publish-comfy-ui.yaml"
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: docker
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log in to the Forgejo container registry
+        uses: docker/login-action@v3
+        with:
+          registry: forgejo.nsns.dk
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_TOKEN }}
+      - name: Build and publish
+        uses: docker/build-push-action@v6
+        with:
+          context: ./comfy-ui
+          push: true
+          tags: |
+            forgejo.nsns.dk/chocolateandmilkwin/comfy-ui:latest
+            forgejo.nsns.dk/chocolateandmilkwin/comfy-ui:sha-${{ forgejo.sha }}
