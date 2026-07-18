@@ -1,6 +1,7 @@
 FROM docker.io/rocm/pytorch:rocm7.2_ubuntu24.04_py3.12_pytorch_release_2.10.0
 
 ARG COMFYUI_VERSION=v0.28.0
+ARG COMFYUI_MANAGER_VERSION=4.2.1
 
 USER root
 
@@ -18,7 +19,8 @@ WORKDIR /workspace
 
 RUN git clone --branch "${COMFYUI_VERSION}" --depth 1 \
     https://github.com/Comfy-Org/ComfyUI.git ComfyUI \
-    && python3 -m pip install --no-cache-dir -r ComfyUI/requirements.txt
+    && python3 -m pip install --no-cache-dir -r ComfyUI/requirements.txt \
+    && python3 -m pip install --no-cache-dir "comfyui-manager>=${COMFYUI_MANAGER_VERSION}"
 
 WORKDIR /workspace/ComfyUI
 
