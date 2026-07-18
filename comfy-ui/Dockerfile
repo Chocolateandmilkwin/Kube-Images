@@ -1,4 +1,4 @@
-FROM rocm/pytorch:rocm7.2_ubuntu24.04_py3.12_pytorch_release_2.10.0
+FROM docker.io/rocm/pytorch:rocm7.2_ubuntu24.04_py3.12_pytorch_release_2.10.0
 
 ARG COMFYUI_VERSION=v0.28.0
 
@@ -11,13 +11,13 @@ RUN apt-get update \
 RUN python3 -m pip install --no-cache-dir --upgrade pip \
     && python3 -m pip uninstall --yes torch torchvision torchaudio \
     && python3 -m pip install --no-cache-dir --pre \
-        --index-url https://rocm.nightlies.amd.com/v2/gfx1151/ \
-        torch torchvision torchaudio
+    --index-url https://rocm.nightlies.amd.com/v2/gfx1151/ \
+    torch torchvision torchaudio
 
 WORKDIR /workspace
 
 RUN git clone --branch "${COMFYUI_VERSION}" --depth 1 \
-        https://github.com/Comfy-Org/ComfyUI.git ComfyUI \
+    https://github.com/Comfy-Org/ComfyUI.git ComfyUI \
     && python3 -m pip install --no-cache-dir -r ComfyUI/requirements.txt
 
 WORKDIR /workspace/ComfyUI
