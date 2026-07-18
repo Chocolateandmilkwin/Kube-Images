@@ -14,19 +14,22 @@ jobs:
     runs-on: docker
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Install Docker CLI
+        run: |
+          apt-get update
+          apt-get install --yes --no-install-recommends docker.io
 
       - name: Log in to the Forgejo container registry
         run: |
-          printf '%s' '${{ secrets.REGISTRY_TOKEN }}' | podman login forgejo.nsns.dk \
+          printf '%s' '${{ secrets.REGISTRY_TOKEN }}' | docker login forgejo.nsns.dk \
             --username '${{ secrets.REGISTRY_USERNAME }}' \
             --password-stdin
 
       - name: Build and publish
         run: |
           image=forgejo.nsns.dk/chocolateandmilkwin/comfy-ui
-          podman build \
-            --tag "${image}:latest" \
-            --tag "${image}:sha-${{ forgejo.sha }}" \
-            ./comfy-ui
-          podman push "${image}:latest"
-          podman push "${image}:sha-${{ forgejo.sha }}"
+          docker build --tag "${image}:latest" \
+            --tag "${image}:sha-${{ forgejo.sha }}" ./comfy-ui
+          docker push "${image}:latest"
+          docker push "${image}:sha-${{ forgejo.sha }}"
