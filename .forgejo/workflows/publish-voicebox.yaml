@@ -1,0 +1,48 @@
+name: Publish Voicebox image
+
+# Builds Voicebox from the upstream release tag (its own Dockerfile) on the arm64 runner
+# and publishes it to this Forgejo's container registry. Mirrors the GitHub workflow.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "voicebox/**"
+      - ".forgejo/workflows/publish-voicebox.yaml"
+  workflow_dispatch:
+
+env:
+  # Upstream release to build: https://github.com/jamiepine/voicebox/releases
+  VOICEBOX_VERSION: "0.6.0"
+  # Pushed inside the cluster, bypassing Traefik (see forgejo-runner.yaml); pull it as
+  # forgejo.nsns.dk/chocolateandmilkwin/voicebox, which is the same registry.
+  REGISTRY: forgejo-http.tools.svc.cluster.local:3000
+  DOCKER_HOST: tcp://host.docker.internal:2375
+  DOCKER_BUILDKIT: "1"
+
+jobs:
+  cpu-arm64:
+    runs-on: docker
+    steps:
+      - name: Install Docker CLI
+        run: |
+          apt-get update
+          apt-get install --yes --no-install-recommends docker.io
+
+      - name: Fetch upstream source
+        run: git clone --depth 1 --branch "v${VOICEBOX_VERSION}" https://github.com/jamiepine/voicebox.git src
+
+      - name: Log in to the Forgejo container registry
+        run: |
+          printf '%s' '${{ secrets.REGISTRY_TOKEN }}' | docker login "$REGISTRY" \
+            --username '${{ secrets.REGISTRY_USERNAME }}' \
+            --password-stdin
+
+      - name: Build and publish
+        run: |
+          image="$REGISTRY/chocolateandmilkwin/voicebox"
+          docker build --build-arg PYTORCH_VARIANT=cpu \
+            --tag "${image}:${VOICEBOX_VERSION}-cpu" \
+            --tag "${image}:sha-${{ forgejo.sha }}-cpu" ./src
+          docker push "${image}:${VOICEBOX_VERSION}-cpu"
+          docker push "${image}:sha-${{ forgejo.sha }}-cpu"
