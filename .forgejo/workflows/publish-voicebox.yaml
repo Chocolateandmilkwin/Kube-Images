@@ -1,7 +1,7 @@
 name: Publish Voicebox image
 
-# Builds Voicebox from the upstream release tag (its own Dockerfile) on the arm64 runner
-# and publishes it to this Forgejo's container registry. Mirrors the GitHub workflow.
+# Builds Voicebox from the upstream release tag (its own Dockerfile) and publishes it to this
+# Forgejo's container registry: a CPU image on the arm64 runner and a ROCm image on the amd64 runner.
 on:
   push:
     branches:
@@ -46,3 +46,33 @@ jobs:
             --tag "${image}:sha-${{ forgejo.sha }}-cpu" ./src
           docker push "${image}:${VOICEBOX_VERSION}-cpu"
           docker push "${image}:sha-${{ forgejo.sha }}-cpu"
+
+  rocm-amd64:
+    # amd64 runner on the Framework nodes (forgejo-runner-framework.yaml), for their AMD GPUs.
+    runs-on: docker-amd64
+    env:
+      # ROCm 7.x is needed for the Strix Halo GPUs (gfx1151).
+      ROCM_VERSION: "7.2"
+    steps:
+      - name: Install Docker CLI
+        run: |
+          apt-get update
+          apt-get install --yes --no-install-recommends docker.io
+
+      - name: Fetch upstream source
+        run: git clone --depth 1 --branch "v${VOICEBOX_VERSION}" https://github.com/jamiepine/voicebox.git src
+
+      - name: Log in to the Forgejo container registry
+        run: |
+          printf '%s' '${{ secrets.REGISTRY_TOKEN }}' | docker login "$REGISTRY" \
+            --username '${{ secrets.REGISTRY_USERNAME }}' \
+            --password-stdin
+
+      - name: Build and publish
+        run: |
+          image="$REGISTRY/chocolateandmilkwin/voicebox"
+          docker build --build-arg PYTORCH_VARIANT=rocm --build-arg ROCM_VERSION="$ROCM_VERSION" \
+            --tag "${image}:${VOICEBOX_VERSION}-rocm" \
+            --tag "${image}:sha-${{ forgejo.sha }}-rocm" ./src
+          docker push "${image}:${VOICEBOX_VERSION}-rocm"
+          docker push "${image}:sha-${{ forgejo.sha }}-rocm"
