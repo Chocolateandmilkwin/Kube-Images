@@ -62,6 +62,14 @@ jobs:
       - name: Fetch upstream source
         run: git clone --depth 1 --branch "v${VOICEBOX_VERSION}" https://github.com/jamiepine/voicebox.git src
 
+      - name: Keep the ROCm PyTorch build
+        # Upstream installs each dependency set with --prefix=/install, so the later installs can't
+        # see the ROCm torch from the first one and pull a newer CUDA torch from PyPI over it.
+        # Putting /install on PYTHONPATH in that build stage makes them keep the ROCm one.
+        run: |
+          sed -i 's|^ARG ROCM_VERSION=.*$|&\nENV PYTHONPATH=/install/lib/python3.12/site-packages|' src/Dockerfile
+          grep -q '^ENV PYTHONPATH=/install' src/Dockerfile
+
       - name: Log in to the Forgejo container registry
         run: |
           printf '%s' '${{ secrets.REGISTRY_TOKEN }}' | docker login "$REGISTRY" \
@@ -74,5 +82,8 @@ jobs:
           docker build --build-arg PYTORCH_VARIANT=rocm --build-arg ROCM_VERSION="$ROCM_VERSION" \
             --tag "${image}:${VOICEBOX_VERSION}-rocm" \
             --tag "${image}:sha-${{ forgejo.sha }}-rocm" ./src
+          # Refuse to publish an image whose torch can't use the AMD GPU.
+          docker run --rm --entrypoint python3 "${image}:${VOICEBOX_VERSION}-rocm" -c \
+            'import sys, torch; print("torch", torch.__version__, "hip", torch.version.hip); sys.exit(0 if torch.version.hip else "torch is not a ROCm build")'
           docker push "${image}:${VOICEBOX_VERSION}-rocm"
           docker push "${image}:sha-${{ forgejo.sha }}-rocm"
